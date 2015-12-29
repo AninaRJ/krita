@@ -40,7 +40,6 @@
 #include <KisAnimatedBrushAnnotation.h>
 #include <KisImportExportManager.h>
 
-#include <ui_wdg_export_gbr.h>
 #include <ui_wdg_export_gih.h>
 
 struct KisBrushExportOptions {

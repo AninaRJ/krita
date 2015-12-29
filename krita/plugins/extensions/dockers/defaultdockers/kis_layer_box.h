@@ -39,6 +39,7 @@
 #include "kis_action.h"
 #include "KisViewManager.h"
 #include "kis_mainwindow_observer.h"
+#include "kis_signal_compressor.h"
 
 class QModelIndex;
 
@@ -50,6 +51,7 @@ class KoCompositeOp;
 class KisCanvas2;
 class KisNodeModel;
 class Ui_WdgLayerBox;
+class KisNodeJugglerCompressed;
 
 /**
  * A widget that shows a visualization of the layer structure.
@@ -95,8 +97,6 @@ private Q_SLOTS:
     void slotRmClicked();
     void slotRaiseClicked();
     void slotLowerClicked();
-    void slotLeftClicked();
-    void slotRightClicked();
     void slotPropertiesClicked();
 
     void slotMergeLayer();
@@ -113,6 +113,7 @@ private Q_SLOTS:
     void slotEditGlobalSelection(bool showSelections);
 
     void selectionChanged(const QModelIndexList selection);
+    void slotNodeManagerChangedSelection(const QList<KisNodeSP> &nodes);
 
     void updateThumbnail();
 
@@ -137,6 +138,8 @@ private:
     KisAction* m_removeAction;
     KisAction* m_propertiesAction;
     KisAction* m_selectOpaque;
+    QPointer<KisNodeJugglerCompressed> m_nodeJuggler;
+    KisSignalCompressor m_thumbnailCompressor;
 };
 
 class KisLayerBoxFactory : public KoDockFactoryBase

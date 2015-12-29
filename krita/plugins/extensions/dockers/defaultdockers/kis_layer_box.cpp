@@ -75,6 +75,8 @@
 #include "kis_selection_mask.h"
 #include "kis_config.h"
 #include "KisView.h"
+#include "kis_node_juggler_compressed.h"
+#include "krita_utils.h"
 
 #include "ui_wdglayerbox.h"
 
@@ -121,6 +123,7 @@ KisLayerBox::KisLayerBox()
         : QDockWidget(i18n("Layers"))
         , m_canvas(0)
         , m_wdgLayerBox(new Ui_WdgLayerBox)
+        , m_thumbnailCompressor(500, KisSignalCompressor::FIRST_INACTIVE)
 {
     KisConfig cfg;
 
@@ -129,11 +132,6 @@ KisLayerBox::KisLayerBox()
     m_opacityDelayTimer.setSingleShot(true);
 
     m_wdgLayerBox->setupUi(mainWidget);
-
-    m_wdgLayerBox->listLayers->setDefaultDropAction(Qt::MoveAction);
-    m_wdgLayerBox->listLayers->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    m_wdgLayerBox->listLayers->setVerticalScrollMode(QAbstractItemView::ScrollPerItem);
-    m_wdgLayerBox->listLayers->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     connect(m_wdgLayerBox->listLayers,
             SIGNAL(contextMenuRequested(const QPoint&, const QModelIndex&)),
@@ -179,14 +177,6 @@ KisLayerBox::KisLayerBox()
     m_wdgLayerBox->bnLower->setIcon(KisIconUtils::loadIcon("arrowdown"));
     m_wdgLayerBox->bnLower->setIconSize(QSize(22, 22));
 
-    m_wdgLayerBox->bnLeft->setEnabled(true);
-    m_wdgLayerBox->bnLeft->setIcon(KisIconUtils::loadIcon("removefromfolder"));
-    m_wdgLayerBox->bnLeft->setIconSize(QSize(22, 22));
-
-    m_wdgLayerBox->bnRight->setEnabled(true);
-    m_wdgLayerBox->bnRight->setIcon(KisIconUtils::loadIcon("addtofolder"));
-    m_wdgLayerBox->bnRight->setIconSize(QSize(22, 22));
-
     m_wdgLayerBox->bnProperties->setIcon(KisIconUtils::loadIcon("properties"));
     m_wdgLayerBox->bnProperties->setIconSize(QSize(22, 22));
 
@@ -201,30 +191,13 @@ KisLayerBox::KisLayerBox()
     connect(m_removeAction, SIGNAL(triggered()), this, SLOT(slotRmClicked()));
     m_actions.append(m_removeAction);
 
-    KisAction* action  = new ButtonAction(m_wdgLayerBox->bnLeft, this);
-    action->setText(i18n("Move Layer Left"));
-    action->setActivationFlags(KisAction::ACTIVE_NODE);
-    action->setActivationConditions(KisAction::ACTIVE_NODE_EDITABLE);
-    action->setObjectName("move_layer_left");
-    connect(action, SIGNAL(triggered()), this, SLOT(slotLeftClicked()));
-    m_actions.append(action);
-
-    action  = new ButtonAction(m_wdgLayerBox->bnRight, this);
-    action->setText(i18n("Move Layer Right"));
-    action->setActivationFlags(KisAction::ACTIVE_NODE);
-    action->setActivationConditions(KisAction::ACTIVE_NODE_EDITABLE);
-    action->setObjectName("move_layer_right");
-    connect(action, SIGNAL(triggered()), this, SLOT(slotRightClicked()));
-    m_actions.append(action);
-
-
-    action  = new ButtonAction(m_wdgLayerBox->bnRaise, this);
+    KisAction *action  = new ButtonAction(m_wdgLayerBox->bnRaise, this);
     action->setText(i18n("Move Layer or Mask Up"));
     action->setActivationFlags(KisAction::ACTIVE_NODE);
     action->setActivationConditions(KisAction::ACTIVE_NODE_EDITABLE);
     action->setObjectName("move_layer_up");
     action->setShortcut(Qt::CTRL + Qt::Key_PageUp);
-    connect(action, SIGNAL(triggered()), this, SLOT(slotLowerClicked()));
+    connect(action, SIGNAL(triggered()), this, SLOT(slotRaiseClicked()));
     m_actions.append(action);
 
     action  = new ButtonAction(m_wdgLayerBox->bnLower, this);
@@ -233,7 +206,7 @@ KisLayerBox::KisLayerBox()
     action->setActivationConditions(KisAction::ACTIVE_NODE_EDITABLE);
     action->setObjectName("move_layer_down");
     action->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_PageDown));
-    connect(action, SIGNAL(triggered()), this, SLOT(slotRaiseClicked()));
+    connect(action, SIGNAL(triggered()), this, SLOT(slotLowerClicked()));
     m_actions.append(action);
 
     m_propertiesAction  = new ButtonAction(m_wdgLayerBox->bnProperties,
@@ -243,11 +216,6 @@ KisLayerBox::KisLayerBox()
     m_propertiesAction->setObjectName("layer_properties");
     connect(m_propertiesAction, SIGNAL(triggered()), this, SLOT(slotPropertiesClicked()));
     m_actions.append(m_propertiesAction);
-
-    // NOTE: this is _not_ a mistake. The layerbox shows the layers in the reverse order
-    connect(m_wdgLayerBox->bnRaise, SIGNAL(clicked()), SLOT(slotLowerClicked()));
-    connect(m_wdgLayerBox->bnLower, SIGNAL(clicked()), SLOT(slotRaiseClicked()));
-    // END NOTE
 
     if (cfg.sliderLabels()) {
         m_wdgLayerBox->opacityLabel->hide();
@@ -298,6 +266,8 @@ KisLayerBox::KisLayerBox()
     m_wdgLayerBox->listLayers->setModel(m_nodeModel);
 
     setEnabled(false);
+
+    connect(&m_thumbnailCompressor, SIGNAL(timeout()), SLOT(updateThumbnail()));
 }
 
 KisLayerBox::~KisLayerBox()
@@ -334,7 +304,6 @@ void KisLayerBox::setMainWindow(KisViewManager* kisview)
 {
     m_nodeManager = kisview->nodeManager();
 
-
     Q_FOREACH (KisAction *action, m_actions) {
         kisview->actionManager()->
             addAction(action->objectName(),
@@ -354,13 +323,13 @@ void KisLayerBox::setCanvas(KoCanvasBase *canvas)
 
     if (m_canvas) {
         m_canvas->disconnectCanvasObserver(this);
-        m_nodeModel->setDummiesFacade(0, 0, 0);
+        m_nodeModel->setDummiesFacade(0, 0, 0, 0);
 
         disconnect(m_image, 0, this, 0);
         disconnect(m_nodeManager, 0, this, 0);
         disconnect(m_nodeModel, 0, m_nodeManager, 0);
         disconnect(m_nodeModel, SIGNAL(nodeActivated(KisNodeSP)), this, SLOT(updateUI()));
-        m_nodeManager->setSelectedNodes(QList<KisNodeSP>());
+        m_nodeManager->slotSetSelectedNodes(KisNodeList());
     }
 
     m_canvas = dynamic_cast<KisCanvas2*>(canvas);
@@ -368,14 +337,14 @@ void KisLayerBox::setCanvas(KoCanvasBase *canvas)
     if (m_canvas) {
         m_image = m_canvas->image();
 
-        connect(m_image, SIGNAL(sigImageUpdated(QRect)), SLOT(updateThumbnail()));
+        connect(m_image, SIGNAL(sigImageUpdated(QRect)), &m_thumbnailCompressor, SLOT(start()));
 
         KisDocument* doc = static_cast<KisDocument*>(m_canvas->imageView()->document());
         KisShapeController *kritaShapeController =
             dynamic_cast<KisShapeController*>(doc->shapeController());
         KisDummiesFacadeBase *kritaDummiesFacade =
             static_cast<KisDummiesFacadeBase*>(kritaShapeController);
-        m_nodeModel->setDummiesFacade(kritaDummiesFacade, m_image, kritaShapeController);
+        m_nodeModel->setDummiesFacade(kritaDummiesFacade, m_image, kritaShapeController, m_nodeManager->nodeSelectionAdapter());
 
         connect(m_image, SIGNAL(sigAboutToBeDeleted()), SLOT(notifyImageDeleted()));
         connect(m_image, SIGNAL(sigNodeCollapsedChanged()), SLOT(slotNodeCollapsedChanged()));
@@ -392,11 +361,9 @@ void KisLayerBox::setCanvas(KoCanvasBase *canvas)
         connect(m_nodeManager, SIGNAL(sigUiNeedChangeActiveNode(KisNodeSP)),
                 this, SLOT(setCurrentNode(KisNodeSP)));
 
-        // Connection KisLayerBox -> KisNodeManager
-        // The order of these connections is important! See comment in the ctor
-        connect(m_nodeModel, SIGNAL(nodeActivated(KisNodeSP)),
-                m_nodeManager, SLOT(slotUiActivatedNode(KisNodeSP)));
-        connect(m_nodeModel, SIGNAL(nodeActivated(KisNodeSP)), SLOT(updateUI()));
+        connect(m_nodeManager,
+                SIGNAL(sigUiNeedChangeSelectedNodes(const QList<KisNodeSP> &)),
+                SLOT(slotNodeManagerChangedSelection(const QList<KisNodeSP> &)));
 
         // Connection KisLayerBox -> KisNodeManager (isolate layer)
         connect(m_nodeModel, SIGNAL(toggleIsolateActiveNode()),
@@ -436,12 +403,12 @@ void KisLayerBox::unsetCanvas()
         m_newLayerMenu->clear();
     }
 
-    m_nodeModel->setDummiesFacade(0, 0, 0);
+    m_nodeModel->setDummiesFacade(0, 0, 0, 0);
     disconnect(m_image, 0, this, 0);
     disconnect(m_nodeManager, 0, this, 0);
     disconnect(m_nodeModel, 0, m_nodeManager, 0);
     disconnect(m_nodeModel, SIGNAL(nodeActivated(KisNodeSP)), this, SLOT(updateUI()));
-    m_nodeManager->setSelectedNodes(QList<KisNodeSP>());
+    m_nodeManager->slotSetSelectedNodes(KisNodeList());
 
     m_canvas = 0;
 }
@@ -507,7 +474,7 @@ void KisLayerBox::setCurrentNode(KisNodeSP node)
 {
     QModelIndex index = node ? m_nodeModel->indexFromNode(node) : QModelIndex();
 
-    m_wdgLayerBox->listLayers->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect);
+    m_nodeModel->setData(index, true, KisNodeModel::ActiveRole);
     updateUI();
 }
 
@@ -633,76 +600,25 @@ void KisLayerBox::slotRmClicked()
 void KisLayerBox::slotRaiseClicked()
 {
     if (!m_canvas) return;
-    KisNodeSP node = m_nodeManager->activeNode();
-    KisNodeSP parent = node->parent();
-    KisNodeSP grandParent = parent->parent();
 
-    if (!m_nodeManager->activeNode()->prevSibling()) {
-        if (!grandParent) return;
-        if (!grandParent->parent() && node->inherits("KisMask")) return;
-        m_nodeManager->moveNodeAt(node, grandParent, grandParent->index(parent));
-    } else {
-        m_nodeManager->raiseNode();
+    if (!m_nodeJuggler) {
+        m_nodeJuggler = new KisNodeJugglerCompressed(kundo2_i18n("Move Nodes"), m_image, m_nodeManager, 1000);
+        m_nodeJuggler->setAutoDelete(true);
     }
+
+    m_nodeJuggler->raiseNode(m_nodeManager->selectedNodes());
 }
 
 void KisLayerBox::slotLowerClicked()
 {
     if (!m_canvas) return;
-    KisNodeSP node = m_nodeManager->activeNode();
-    KisNodeSP parent = node->parent();
-    KisNodeSP grandParent = parent->parent();
 
-    if (!m_nodeManager->activeNode()->nextSibling()) {
-        if (!grandParent) return;
-        if (!grandParent->parent() && node->inherits("KisMask")) return;
-        m_nodeManager->moveNodeAt(node, grandParent, grandParent->index(parent) + 1);
+    if (!m_nodeJuggler) {
+        m_nodeJuggler = new KisNodeJugglerCompressed(kundo2_i18n("Move Nodes"), m_image, m_nodeManager, 1000);
+        m_nodeJuggler->setAutoDelete(true);
     }
-    else {
-        m_nodeManager->lowerNode();
-    }
-}
 
-void KisLayerBox::slotLeftClicked()
-{
-    if (!m_canvas) return;
-    Q_FOREACH (KisNodeSP node, m_nodeManager->selectedNodes()) {
-        KisNodeSP parent = node->parent();
-        KisNodeSP grandParent = parent->parent();
-        quint16 nodeIndex = parent->index(node);
-
-        if (!grandParent) continue;
-        if (!grandParent->parent() && node->inherits("KisMask")) continue;
-
-        if (nodeIndex <= parent->childCount() / 2) {
-            m_nodeManager->moveNodeAt(node, grandParent, grandParent->index(parent));
-        }
-        else {
-            m_nodeManager->moveNodeAt(node, grandParent, grandParent->index(parent) + 1);
-        }
-    }
-}
-
-void KisLayerBox::slotRightClicked()
-{
-    if (!m_canvas) return;
-
-    Q_FOREACH (KisNodeSP node, m_nodeManager->selectedNodes()) {
-        KisNodeSP parent = m_nodeManager->activeNode()->parent();
-        KisNodeSP newParent;
-        int nodeIndex = parent->index(node);
-        int indexAbove = nodeIndex + 1;
-        int indexBelow = nodeIndex - 1;
-
-        if (parent->at(indexBelow) && parent->at(indexBelow)->allowAsChild(node)) {
-            newParent = parent->at(indexBelow);
-            m_nodeManager->moveNodeAt(node, newParent, newParent->childCount());
-        }
-        else if (parent->at(indexAbove) && parent->at(indexAbove)->allowAsChild(node)) {
-            newParent = parent->at(indexAbove);
-            m_nodeManager->moveNodeAt(node, newParent, 0);
-        }
-    }
+    m_nodeJuggler->lowerNode(m_nodeManager->selectedNodes());
 }
 
 void KisLayerBox::slotPropertiesClicked()
@@ -834,23 +750,50 @@ void KisLayerBox::selectionChanged(const QModelIndexList selection)
 {
     if (!m_nodeManager) return;
 
+    /**
+     * When the user clears the extended selection by clicking on the
+     * empty area of the docker, the selection should be reset on to
+     * the active layer, which might be even unselected(!).
+     */
     if (selection.isEmpty() && m_nodeManager->activeNode()) {
+        QModelIndex selectedIndex =
+            m_nodeModel->indexFromNode(m_nodeManager->activeNode());
+
         m_wdgLayerBox->listLayers->selectionModel()->
-            setCurrentIndex(
-                m_nodeModel->indexFromNode(m_nodeManager->activeNode()),
-                QItemSelectionModel::ClearAndSelect);
+            setCurrentIndex(selectedIndex, QItemSelectionModel::ClearAndSelect);
         return;
     }
-
 
     QList<KisNodeSP> selectedNodes;
     Q_FOREACH (const QModelIndex &idx, selection) {
         selectedNodes << m_nodeModel->nodeFromIndex(idx);
     }
 
-
-    m_nodeManager->setSelectedNodes(selectedNodes);
+    m_nodeManager->slotSetSelectedNodes(selectedNodes);
     updateUI();
+}
+
+void KisLayerBox::slotNodeManagerChangedSelection(const KisNodeList &nodes)
+{
+    if (!m_nodeManager) return;
+
+    QModelIndexList newSelection;
+    Q_FOREACH(KisNodeSP node, nodes) {
+        newSelection << m_nodeModel->indexFromNode(node);
+    }
+
+    QItemSelectionModel *model = m_wdgLayerBox->listLayers->selectionModel();
+
+    if (KritaUtils::compareListsUnordered(newSelection, model->selectedIndexes())) {
+        return;
+    }
+
+    QItemSelection selection;
+    Q_FOREACH(const QModelIndex &idx, newSelection) {
+        selection.select(idx, idx);
+    }
+
+    model->select(selection, QItemSelectionModel::ClearAndSelect);
 }
 
 void KisLayerBox::updateThumbnail()

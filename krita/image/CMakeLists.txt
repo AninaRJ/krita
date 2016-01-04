@@ -80,10 +80,6 @@ set(kritaimage_LIB_SRCS
    commands/kis_image_layer_move_command.cpp
    commands/kis_image_layer_remove_command.cpp
    commands/kis_image_layer_remove_command_impl.cpp
-   commands/kis_image_node_lower_command.cpp
-   commands/kis_image_node_raise_command.cpp
-   commands/kis_image_node_to_bottom_command.cpp
-   commands/kis_image_node_to_top_command.cpp
    commands/kis_image_lock_command.cpp
    commands/kis_layer_command.cpp
    commands/kis_layer_props_command.cpp
@@ -329,9 +325,6 @@ target_link_libraries(kritaimage kritaversion kritawidgets kritaglobal kritapsd 
 target_link_libraries(kritaimage LINK_INTERFACE_LIBRARIES kritaversion kritaglobal kritapsd kritaodf kritapigment kritaundo2 kritawidgetutils Qt5::Concurrent)
 
 target_link_libraries(kritaimage ${Boost_SYSTEM_LIBRARY})
-message("DEBUG_BOOST_LIBRARIES = " ${Boost_LIBRARIES})
-message("DEBUG_BOOST_SYSTEM_FOUND = " ${Boost_SYSTEM_FOUND})
-message("DEBUG_BOOST_SYSTEM_LIBRARY = " ${Boost_SYSTEM_LIBRARY})
 
 if(OPENEXR_FOUND)
   target_link_libraries(kritaimage  ${OPENEXR_LIBRARIES})

@@ -76,6 +76,7 @@ public:
 
     void blockMouseEvents();
     void allowMouseEvents();
+    void eatOneMousePress();
 
     template <class Event, bool useBlocking>
     void debugEvent(QEvent *event)
@@ -110,7 +111,6 @@ public:
     };
     CanvasSwitcher canvasSwitcher;
 
-#if !defined(Q_OS_WIN)
     class EventEater
     {
     public:
@@ -122,12 +122,14 @@ public:
         void deactivate();
         bool isActive();
 
+        // On Windows, we sometimes receive mouse events very late, so watch & wait.
+        void eatOneMousePress();
+
     private:
         bool hungry{false};   // Continue eating mouse strokes
         bool peckish{false};  // Eat a single mouse press event
     };
     EventEater eventEater;
-#endif
 
     bool focusOnEnter = true;
     bool containsPointer = true;

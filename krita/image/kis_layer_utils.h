@@ -31,7 +31,7 @@ namespace KisMetaData
 namespace KisLayerUtils
 {
     KRITAIMAGE_EXPORT void sortMergableNodes(KisNodeSP root, QList<KisNodeSP> &inputNodes, QList<KisNodeSP> &outputNodes);
-    KRITAIMAGE_EXPORT void filterMergableNodes(QList<KisNodeSP> &nodes);
+    KRITAIMAGE_EXPORT void filterMergableNodes(QList<KisNodeSP> &nodes, bool allowMasks = false);
 
     KRITAIMAGE_EXPORT void mergeDown(KisImageSP image, KisLayerSP layer, const KisMetaData::MergeStrategy* strategy);
 
@@ -75,6 +75,16 @@ namespace KisLayerUtils
         int m_newTime;
         bool m_finalize;
         SharedStorageSP m_storage;
+    };
+
+    class KRITAIMAGE_EXPORT RemoveNodeHelper {
+    public:
+        virtual ~RemoveNodeHelper();
+    protected:
+        virtual void addCommandImpl(KUndo2Command *cmd) = 0;
+        void safeRemoveMultipleNodes(QList<KisNodeSP> nodes, KisImageSP image);
+    private:
+        bool checkIsSourceForClone(KisNodeSP src, const QList<KisNodeSP> &nodes);
     };
 };
 

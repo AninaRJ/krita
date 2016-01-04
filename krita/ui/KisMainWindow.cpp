@@ -124,7 +124,6 @@
 #include "kis_icon_utils.h"
 #include <KisImportExportFilter.h>
 #include <KisDocumentEntry.h>
-#include <KisWelcomeScreen.h>
 
 class ToolDockerFactory : public KoDockFactoryBase
 {
@@ -191,7 +190,6 @@ public:
         , windowMapper(new QSignalMapper(parent))
         , documentMapper(new QSignalMapper(parent))
         , lastExportSpecialOutputFlag(0)
-        , welcomeScreen(new KisWelcomeScreen(parent))
     {
     }
 
@@ -269,8 +267,6 @@ public:
 
     QByteArray lastExportedFormat;
     int lastExportSpecialOutputFlag;
-
-    KisWelcomeScreen *welcomeScreen;
 
     KisActionManager * actionManager() {
         return viewManager->actionManager();
@@ -350,7 +346,6 @@ KisMainWindow::KisMainWindow()
     d->mdiArea->setTabsClosable(true);
 
     setCentralWidget(d->mdiArea);
-    d->welcomeScreen->hide();
 
     connect(d->mdiArea, SIGNAL(subWindowActivated(QMdiSubWindow*)), this, SLOT(subWindowActivated()));
     connect(d->windowMapper, SIGNAL(mapped(QWidget*)), this, SLOT(setActiveSubWindow(QWidget*)));
@@ -425,12 +420,13 @@ KisMainWindow::KisMainWindow()
 
     configChanged();
 
+    // If we have customized the toolbars, load that first
+    setLocalXMLFile(KoResourcePaths::locateLocal("data", "krita/krita.rc"));
+
     QString doc;
     QStringList allFiles = KoResourcePaths::findAllResources("data", "krita/krita.rc");
     KIS_ASSERT(allFiles.size() > 0); // We need at least one krita.rc file!
-
     setXMLFile(findMostRecentXMLFile(allFiles, doc));
-    setLocalXMLFile(KoResourcePaths::locateLocal("data", "krita/krita.rc"));
 
     guiFactory()->addClient(this);
 

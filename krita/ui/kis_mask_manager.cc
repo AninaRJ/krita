@@ -240,34 +240,6 @@ void KisMaskManager::createTransformMask(KisNodeSP activeNode)
     createMaskCommon(mask, activeNode, 0, kundo2_i18n("Add Transform Mask"), "KisTransformMask", i18n("Transform Mask"), true, false);
 }
 
-void KisMaskManager::duplicateMask()
-{
-    if (!activeMask()) return;
-    if (!m_view->image()) return;
-
-    // If it's a global mask we shouldn't be able to duplicate
-    // TODO: Maybe add this check to KisSelectionMask function to know if it's global or not?
-    if(activeMask()->parent().data() == m_view->image()->rootLayer().data()) return;
-
-    KisMaskSP newMask = dynamic_cast<KisMask*>(activeMask()->clone().data());
-    newMask->setName(i18n("Duplication of ") + activeMask()->name());
-    m_commandsAdapter->addNode(newMask, activeMask()->parent(), activeMask());
-
-    KisSelectionMaskSP selectionMask = dynamic_cast<KisSelectionMask*>(newMask.data());
-    if (selectionMask) {
-        selectionMask->setActive(true);
-    }
-    masksUpdated();
-}
-
-void KisMaskManager::removeMask()
-{
-    if (!activeMask()) return;
-    if (!m_view->image()) return;
-    m_commandsAdapter->removeNode(activeMask());
-    masksUpdated();
-}
-
 void KisMaskManager::maskProperties()
 {
     if (!activeMask()) return;
@@ -329,32 +301,3 @@ void KisMaskManager::maskProperties()
         // Not much to show for transparency or selection masks?
     }
 }
-
-void KisMaskManager::raiseMask()
-{
-    if (!activeMask()) return;
-    if (!m_view->image()) return;
-    m_commandsAdapter->raise(activeMask());
-}
-
-void KisMaskManager::lowerMask()
-{
-    if (!activeMask()) return;
-    if (!m_view->image()) return;
-    m_commandsAdapter->lower(activeMask());
-}
-
-void KisMaskManager::maskToTop()
-{
-    if (!activeMask()) return;
-    if (!m_view->image()) return;
-    m_commandsAdapter->toTop(activeMask());
-}
-
-void KisMaskManager::maskToBottom()
-{
-    if (!activeMask()) return;
-    if (!m_view->image()) return;
-    m_commandsAdapter->toBottom(activeMask());
-}
-

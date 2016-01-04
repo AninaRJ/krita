@@ -173,20 +173,6 @@ public Q_SLOTS:
      */
     void lowerNode();
 
-    /**
-     * move the activenode to the top-most position of the nodestack
-     * If the node is a mask, the stack is limited to the set of masks
-     * belonging to the current layer.
-     */
-    void nodeToTop();
-
-    /**
-     * move the activenode to the bottom-most position of the nodestack
-     * If the node is a mask, the stack is limited to the set of masks
-     * belonging to the current layer.
-     */
-    void nodeToBottom();
-    
     void rotate(double radians);
     void rotate180();
     void rotateLeft90();
@@ -207,6 +193,8 @@ public Q_SLOTS:
      */
     void slotSetSelectedNodes(const KisNodeList &nodes);
 
+    void slotImageRequestNodeReselection(KisNodeSP activeNode, const KisNodeList &selectedNodes);
+
 public:
 
     
@@ -215,6 +203,7 @@ public:
     void scale(double sx, double sy, KisFilterStrategy *filterStrategy);
 
     void removeSingleNode(KisNodeSP node);
+    KisLayerSP constructDefaultLayer();
     KisLayerSP createPaintLayer();
 
 private:

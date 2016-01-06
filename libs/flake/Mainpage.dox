@@ -1,5 +1,5 @@
 /**
- * \mainpage Flake
+ * \mainpage KritaFlake
  *
  * The Flake library is a low level library for all kinds of graphical content
  * to be placed on any Calligra canvas. This includes a line to text-areas or
@@ -69,5 +69,5 @@ X-Flake-PluginVersion=27
  *
  */
 
-// DOXYGEN_SET_PROJECT_NAME = Flake
+// DOXYGEN_SET_PROJECT_NAME = KritaFlake
 // DOXYGEN_SET_IGNORE_PREFIX = Ko K

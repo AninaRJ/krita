@@ -1,0 +1,8 @@
+/**
+ * \mainpage
+ *
+ * Impex is a library that contains registry and interfaces for import/export plugins
+ */
+
+// DOXYGEN_SET_PROJECT_NAME = KritaImpex
+// DOXYGEN_SET_IGNORE_PREFIX = Ko K Kis

@@ -206,11 +206,8 @@ KisImagePipeBrush::KisImagePipeBrush(const QString& name, int w, int h,
 
     parasite.setBrushesCount();
 
-    m_d->brushesPipe.setParasite(parasite);
-    for (int i = 0; i < devices.at(0).count(); i++) {
-        m_d->brushesPipe.addBrush(new KisGbrBrush(devices.at(0).at(i), 0, 0, w, h));
-    }
-
+    setParasite(parasite);
+    setDevices(devices, w, h);
     setBrushTipImage(m_d->brushesPipe.firstBrush()->brushTipImage());
 }
 
@@ -478,4 +475,17 @@ void KisImagePipeBrush::testingSelectNextBrush(const KisPaintInformation& info) 
 
 const KisPipeBrushParasite& KisImagePipeBrush::parasite() const {
     return m_d->brushesPipe.parasite();
+}
+
+void KisImagePipeBrush::setParasite(const KisPipeBrushParasite &parasite)
+{
+    m_d->brushesPipe.setParasite(parasite);
+}
+
+void KisImagePipeBrush::setDevices(QVector<QVector<KisPaintDevice *> > devices, int w, int h)
+{
+
+    for (int i = 0; i < devices.at(0).count(); i++) {
+        m_d->brushesPipe.addBrush(new KisGbrBrush(devices.at(0).at(i), 0, 0, w, h));
+    }
 }

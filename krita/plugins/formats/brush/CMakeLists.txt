@@ -8,7 +8,6 @@ ki18n_wrap_ui(kritabrushexport_PART_SRCS
 )
 
 add_library(kritabrushexport MODULE ${kritabrushexport_PART_SRCS})
-kcoreaddons_desktop_to_json(kritabrushexport krita_brush_export.desktop)
 
 target_link_libraries(kritabrushexport kritalibbrush kritalibpaintop kritaui)
 
@@ -22,7 +21,6 @@ set(kritabrushimport_PART_SRCS
 ki18n_wrap_ui(kritabrushimport_PART_SRCS )
 
 add_library(kritabrushimport MODULE ${kritabrushimport_PART_SRCS})
-kcoreaddons_desktop_to_json(kritabrushimport krita_brush_import.desktop)
 
 target_link_libraries(kritabrushimport kritalibbrush kritaui)
 

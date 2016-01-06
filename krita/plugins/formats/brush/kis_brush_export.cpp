@@ -23,6 +23,7 @@
 #include <QSlider>
 #include <QBuffer>
 
+#include <KoProperties.h>
 #include <KoDialog.h>
 #include <kpluginfactory.h>
 #include <QUrl>
@@ -118,6 +119,7 @@ KisImportExportFilter::ConversionStatus KisBrushExport::convert(const QByteArray
         }
         else if (to == "image/x-gimp-brush-animated") {
             brush = new KisImagePipeBrush(filename);
+            wdgUi.groupBox->setVisible(true);
         }
         else {
             delete dlgBrushExportOptions;
@@ -151,18 +153,56 @@ KisImportExportFilter::ConversionStatus KisBrushExport::convert(const QByteArray
     brush->setSpacing(exportOptions.spacing);
     brush->setUseColorAsMask(exportOptions.mask);
 
+    int w = input->image()->width();
+    int h = input->image()->height();
+
     KisImagePipeBrush *pipeBrush = dynamic_cast<KisImagePipeBrush*>(brush);
     if (pipeBrush) {
-        // Save the parasite
-        // Save the layers
+        // Create parasite. XXX: share with KisCustomBrushWidget
+        QVector< QVector<KisPaintDevice*> > devices;
+        devices.push_back(QVector<KisPaintDevice*>());
+
+        KoProperties properties;
+        properties.setProperty("visible", true);
+        QList<KisNodeSP> layers = input->image()->root()->childNodes(QStringList("KisLayer"), properties);
+        KisNodeSP node;
+        Q_FOREACH (KisNodeSP node, layers) {
+            devices[0].push_back(node->projection().data());
+        }
+
+
+        QVector<KisParasite::SelectionMode > modes;
+        switch (exportOptions.selectionMode) {
+        case 0: modes.push_back(KisParasite::Constant); break;
+        case 1: modes.push_back(KisParasite::Random); break;
+        case 2: modes.push_back(KisParasite::Incremental); break;
+        case 3: modes.push_back(KisParasite::Pressure); break;
+        case 4: modes.push_back(KisParasite::Angular); break;
+        default: modes.push_back(KisParasite::Incremental);
+        }
+
+        KisPipeBrushParasite parasite;
+
+        // XXX: share code with KisImagePipeBrush, when we figure out how to support more gih features
+        parasite.dim = devices.count();
+        // XXX Change for multidim! :
+        parasite.ncells = devices.at(0).count();
+        parasite.rank[0] = parasite.ncells; // ### This can mask some bugs, be careful here in the future
+        parasite.selection[0] = modes.at(0);
+        // XXX needsmovement!
+        parasite.setBrushesCount();
+        pipeBrush->setParasite(parasite);
+        pipeBrush->setDevices(devices, w, h);
     }
     else {
         QImage image = input->image()->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
         brush->setImage(image);
     }
 
-    input->image()->unlock();
+    brush->setWidth(w);
+    brush->setHeight(h);
 
+    input->image()->unlock();
 
     QFile f(filename);
     f.open(QIODevice::WriteOnly);

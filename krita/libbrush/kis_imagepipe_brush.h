@@ -110,6 +110,10 @@ public:
 
 
     const KisPipeBrushParasite &parasite() const;
+
+    void setParasite(const KisPipeBrushParasite& parasite);
+    void setDevices(QVector< QVector<KisPaintDevice*> > devices, int w, int h);
+
 protected:
     void setBrushType(enumBrushType type);
     void setHasColor(bool hasColor);

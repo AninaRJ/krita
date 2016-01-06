@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Id": "Krita Brush Export Filter",
+        "ServiceTypes": [
+            "Krita/FileFilter"
+        ]
+    },
+    "NoDisplay": "true",
+    "X-KDE-Export": "image/x-gimp-brush,image/x-gimp-brush-animated",
+    "X-KDE-Import": "application/x-krita",
+    "X-KDE-Weight": "1"
+}

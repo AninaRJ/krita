@@ -16,8 +16,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 #include "KisImportFilter.h"
-
-KisImportFilter::KisImportFilter(QObject *parent) :
-    QObject(parent)
+\
+KisImportFilter::KisImportFilter(const KoID &id, const QStringList &mimeTypes, const QStringList &extensions, QObject *parent)
+    : KisImpExBase(id, mimeTypes, extensions, parent)
 {
+
+}
+
+QStringList KisImportFilter::load(KisDocument *document, const QString &fileName, KoUpdater *progressUpdater) const
+{
+    return loadImpl(document, fileName, progressUpdater);
 }

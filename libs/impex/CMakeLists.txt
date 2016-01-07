@@ -1,5 +1,6 @@
 set(kritaimpex_LIB_SRCS
     ImpexDebug.cpp
+    KisImpExBase.cpp
     KisExportFilter.cpp
     KisExportFilterRegistry.cpp
     KisImportFilter.cpp

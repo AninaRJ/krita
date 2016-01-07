@@ -15,21 +15,44 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
-#include "KisExportFilter.h"
+#include "KisImpExBase.h"
 
-KisExportFilter::KisExportFilter(const KoID &id, const QStringList &mimeTypes, const QStringList &extensions, QObject *parent)
-    : KisImpExBase(id, mimeTypes, extensions, parent)
+struct KisImpExBase::Private {
+    KoID id;
+    QStringList mimeTypes;
+    QStringList extensions;
+};
+
+KisImpExBase::KisImpExBase(const KoID &id, const QStringList &mimeTypes, const QStringList &extensions, QObject *parent)
+    : QObject(parent)
+    , d(new Private())
 {
-
+    d->id = id;
+    d->mimeTypes = mimeTypes;
+    d->extensions = extensions;
 }
 
-QStringList KisExportFilter::save(const KisDocument *document, const QString &fileName, KoUpdater *progressUpdater) const
+KisImpExBase::~KisImpExBase()
 {
-    // Create a temporary filename
-    // Call saveImpl
-    QStringList errors = saveImpl(document, fileName, progressUpdater);
-    // Rename as atomically as possible to the real target filename
-    // Delete the temporary file
-
-    return errors;
 }
+
+QString KisImpExBase::id() const
+{
+    return d->id.id();
+}
+
+QString KisImpExBase::name() const
+{
+    return d->id.name();
+}
+
+QStringList KisImpExBase::mimeTypes() const
+{
+    return d->mimeTypes;
+}
+
+QStringList KisImpExBase::extensions() const
+{
+    return d->extensions;
+}
+

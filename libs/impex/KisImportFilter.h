@@ -18,17 +18,30 @@
 #ifndef KISIMPORTFILTER_H
 #define KISIMPORTFILTER_H
 
-#include <QObject>
+#include <KisImpExBase.h>
 
-#include <kis_shared.h>
-#include <kis_shared_ptr.h>
+class KisDocument;
+class KoUpdater;
 
-class KisImportFilter : public QObject, public KisShared
+class KisImportFilter : public KisImpExBase
 {
     Q_OBJECT
 public:
-    explicit KisImportFilter(QObject *parent = 0);
+    explicit KisImportFilter(const KoID &id, const QStringList &mimeTypes, const QStringList &extensions, QObject *parent = 0);
 
+    /**
+     * Load the given image into the document's KisImage;
+     *
+     * @param document: the document
+     * @param filename: The filename is a full and absolute path.
+     * @param progressUpdater: to pass on the progress the loading is making
+     * @returns and empty QStringList. If loading failed, returns a list of all the errors encountered
+     */
+    QStringList load(KisDocument *document, const QString &fileName, KoUpdater* progressUpdater) const;
+
+protected:
+
+    virtual QStringList loadImpl(KisDocument *document, const QString &fileName, KoUpdater* progressUpdater) const = 0;
 
 };
 

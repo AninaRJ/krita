@@ -18,18 +18,33 @@
 #ifndef KISEXPORTFILTER_H
 #define KISEXPORTFILTER_H
 
-#include <QObject>
+#include <KisImpExBase.h>
 
-#include <kis_shared.h>
-#include <kis_shared_ptr.h>
+class KisDocument;
+class KoUpdater;
 
-class KisExportFilter : public QObject, public KisShared
+/**
+ * @brief The KisExportFilter class is the base class for all export filters
+ */
+class KisExportFilter : public KisImpExBase
 {
     Q_OBJECT
 public:
-    explicit KisExportFilter(QObject *parent = 0);
+    explicit KisExportFilter(const KoID &id, const QStringList &mimeTypes, const QStringList &extensions, QObject *parent = 0);
 
+    /**
+     * Export the image in the given KisDocument to the specified filename.
+     *
+     * @param document: the document to be saved
+     * @param filename: The filename is a full and absolute path.
+     * @param progressUpdater: to pass on the progress the export is making
+     * @returns and empty QStringList. If saving failed, returns a list of all the errors encountered
+     */
+    QStringList save(const KisDocument *document, const QString &fileName, KoUpdater* progressUpdater) const;
 
+protected:
+
+    virtual QStringList saveImpl(const KisDocument *document, const QString &fileName, KoUpdater* progressUpdater) const = 0;
 };
 
 typedef KisSharedPtr<KisExportFilter> KisExportFilterSP;

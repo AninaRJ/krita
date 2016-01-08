@@ -16,8 +16,52 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 #include "KisExportFilterRegistry.h"
+#include <KoPluginLoader.h>
 
-KisExportFilterRegistry::KisExportFilterRegistry(QObject *parent) :
-    QObject(parent)
+Q_GLOBAL_STATIC(KisExportFilterRegistry, s_instance)
+
+struct KisExportFilterRegistry::Private {
+};
+
+KisExportFilterRegistry::KisExportFilterRegistry()
+    : KoGenericRegistry<KisExportFilterSP>()
 {
+    KoPluginLoader::instance()->load("Krita/ExportFilter", "(Type == 'Service') and ([X-Krita-Version] == 28)");
+
+    Q_FOREACH (const QString & id, keys()) {
+        KisExportFilterSP exportFilter = get(id);
+        qDebug() << exportFilter->name() << exportFilter->mimeTypes() << exportFilter->extensions();
+    }
 }
+
+
+KisExportFilterRegistry::~KisExportFilterRegistry()
+{
+
+}
+
+KisExportFilterRegistry *KisExportFilterRegistry::instance()
+{
+    return s_instance;
+}
+
+QStringList &KisExportFilterRegistry::exportMimeTypes() const
+{
+
+}
+
+KisExportFilterSP KisExportFilterRegistry::exportFilterByMime(const QString &mimeType) const
+{
+
+}
+
+QStringList &KisExportFilterRegistry::exportExtensions() const
+{
+
+}
+
+KisExportFilterSP KisExportFilterRegistry::exportFilterByExtension(const QString &extension) const
+{
+
+}
+

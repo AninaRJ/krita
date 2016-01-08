@@ -13,6 +13,7 @@ generate_export_header(kritaimpex BASE_NAME kritaimpex)
 target_link_libraries(kritaimpex
     PUBLIC
         kritaglobal
+        kritaplugin
         Qt5::Core
 )
 

@@ -1,0 +1,8 @@
+{
+    "Id": "Krita PNG Import Filter",
+    "Type": "Service",
+    "X-KDE-ServiceTypes": [
+        "Krita/ImportFilter"
+    ],
+    "X-KDE-Weight": "1"
+}

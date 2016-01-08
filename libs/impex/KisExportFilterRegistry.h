@@ -18,18 +18,31 @@
 #ifndef KISEXPORTFILTERREGISTRY_H
 #define KISEXPORTFILTERREGISTRY_H
 
-#include <QObject>
+#include <QScopedPointer>
+
 #include <KoGenericRegistry.h>
 
-#include <KisImportFilter.h>
+#include <KisExportFilter.h>
 
-class KisExportFilterRegistry : public QObject, public KoGenericRegistry<KisImportFilterSP>
+class KisExportFilterRegistry : public QObject, public KoGenericRegistry<KisExportFilterSP>
 {
-    Q_OBJECT
 public:
-    explicit KisExportFilterRegistry(QObject *parent = 0);
+    KisExportFilterRegistry();
+    virtual ~KisExportFilterRegistry();
+    static KisExportFilterRegistry *instance();
 
+    QStringList &exportMimeTypes() const;
+    KisExportFilterSP exportFilterByMime(const QString &mimeType) const;
 
+    QStringList &exportExtensions() const;
+    KisExportFilterSP exportFilterByExtension(const QString &extension) const;
+
+private:
+    KisExportFilterRegistry(const KisExportFilterRegistry &);
+    KisExportFilterRegistry &operator=(const KisExportFilterRegistry &);
+
+    struct Private;
+    const QScopedPointer<Private> d;
 };
 
 #endif // KISIMPORTFILTERREGISTRY_H

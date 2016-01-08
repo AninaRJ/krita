@@ -77,6 +77,8 @@
 #include "KisApplicationArguments.h"
 #include <kis_debug.h>
 #include "kis_action_registry.h"
+#include <KisExportFilterRegistry.h>
+#include <KisImportFilterRegistry.h>
 
 #ifdef HAVE_OPENGL
 #include "opengl/kis_opengl.h"
@@ -188,8 +190,6 @@ KisApplication::KisApplication(const QString &key, int &argc, char **argv)
         }
     }
     qDebug() << "Style:" << QApplication::style();
-
-
 
     KoHashGeneratorProvider::instance()->setGenerator("MD5", new KisMD5Generator());
 }
@@ -368,7 +368,7 @@ bool KisApplication::start(const KisApplicationArguments &args)
 
     const bool doTemplate = args.doTemplate();
     const bool print = args.print();
-    const bool exportAs = args.exportAs();
+    const bool exportAs = args.eortAs();
     const bool exportAsPdf = args.exportAsPdf();
     const QString exportFileName = args.exportFileName();
     const QString profileFileName = args.profileFileName();
@@ -395,6 +395,8 @@ bool KisApplication::start(const KisApplicationArguments &args)
     KoShapeRegistry* r = KoShapeRegistry::instance();
     r->add(new KisShapeSelectionFactory());
 
+    KisImportFilterRegistry::instance();
+    KisExportFilterRegistry::instance();
     KisActionRegistry::instance();
     KisFilterRegistry::instance();
     KisGeneratorRegistry::instance();
